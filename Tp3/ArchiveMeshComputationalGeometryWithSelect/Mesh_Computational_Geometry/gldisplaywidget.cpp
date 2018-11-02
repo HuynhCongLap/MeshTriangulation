@@ -28,7 +28,17 @@ void GLDisplayWidget::initializeGL()
     // Mesh box(Vertex(-2,-2,0),Vertex(2,-2,0), Vertex(-2,2,0), Vertex(2,2,0));
      //  _mesh = box;
     //_mesh.readPointFromFile("test.off"); // Add point from File
-    _mesh.oneTriangleInit();
+    //_mesh.oneTriangleInit();
+    _mesh.boudingBox();
+
+    _mesh.insertPointOutSide(Vertex(2,0,-6));
+ //   _mesh.insertPointOutSide(Vertex(6,-6,0));
+  //  _mesh.insertPointOutSide(Vertex(2,7,0));
+   // _mesh.insertPointOutSide(Vertex(7,7,0));
+    _mesh.readPointFromFile("terrain.xyz");
+
+    //_mesh.flip(0,2);
+
 }
 
 void GLDisplayWidget::paintGL(){
@@ -53,7 +63,9 @@ void GLDisplayWidget::paintGL(){
    // _mesh.drawTetraedra();
 
       _mesh.draw();
-      _mesh.deBug();
+      //_mesh.deBug();
+
+
 
 
 
@@ -64,7 +76,7 @@ void GLDisplayWidget::resizeGL(int width, int height){
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
+    gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 500.0f);
 
     updateGL();
 }
@@ -96,7 +108,7 @@ void GLDisplayWidget::mouseMoveEvent(QMouseEvent *event)
 // Mouse Management for the zoom
 void GLDisplayWidget::wheelEvent(QWheelEvent *event) {
     QPoint numDegrees = event->angleDelta();
-    double stepZoom = 0.25;
+    double stepZoom = 4;
     if (!numDegrees.isNull())
     {
       _Z = (numDegrees.x() > 0 || numDegrees.y() > 0) ? _Z + stepZoom : _Z - stepZoom;

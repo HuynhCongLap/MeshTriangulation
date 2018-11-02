@@ -53,7 +53,7 @@ void Mesh::draw()
 {
 
     glPointSize(3);
-    glLineWidth(3);
+    glLineWidth(1);
     for(int i = 0; i < _facesArray.size(); i++) {
 
         glColor3d(1,0,0);
@@ -70,26 +70,25 @@ void Mesh::draw()
         glEnd();
 
 
-        glBegin(GL_LINE_STRIP);
-        glVertexDraw(_vertexArray[_facesArray[i].b()]);
-        glVertexDraw(_vertexArray[_facesArray[i].c()]);
-        glEnd();
+       glBegin(GL_LINE_STRIP);
+       glVertexDraw(_vertexArray[_facesArray[i].b()]);
+       glVertexDraw(_vertexArray[_facesArray[i].c()]);
+       glEnd();
 
 
-        glBegin(GL_LINE_STRIP);
-        glVertexDraw(_vertexArray[_facesArray[i].c()]);
-        glVertexDraw(_vertexArray[_facesArray[i].a()]);
-        glEnd();
+       glBegin(GL_LINE_STRIP);
+       glVertexDraw(_vertexArray[_facesArray[i].c()]);
+       glVertexDraw(_vertexArray[_facesArray[i].a()]);
+       glEnd();
 
-        if(!_facesArray[i].isInfinityFace())
-        {
-            glColor3d(0,1,0);
-            glBegin(GL_TRIANGLES);
-            glVertexDraw(_vertexArray[_facesArray[i].a()]);
-            glVertexDraw(_vertexArray[_facesArray[i].b()]);
-            glVertexDraw(_vertexArray[_facesArray[i].c()]);
-            glEnd();
-        }
+
+          //  glColor3d(0,1,0);
+         //   glBegin(GL_TRIANGLES);
+          //  glVertexDraw(_vertexArray[_facesArray[i].a()]);
+           // glVertexDraw(_vertexArray[_facesArray[i].b()]);
+          //  glVertexDraw(_vertexArray[_facesArray[i].c()]);
+          //  glEnd();
+
 
 
 }
@@ -140,8 +139,6 @@ void Mesh::readPointFromFile(QString fileName)
         QTextStream stream(&inputFile);
         QString line = stream.readLine();
 
-        QString numStr;
-
         while (!line.isNull()) {
 
                line = stream.readLine();
@@ -151,7 +148,7 @@ void Mesh::readPointFromFile(QString fileName)
                    float a = line.split(" ", QString::SkipEmptyParts)[0].toFloat();
                    float b = line.split(" ", QString::SkipEmptyParts)[1].toFloat();
                    float c = line.split(" ", QString::SkipEmptyParts)[2].toFloat();
-                   insertMesh(Vertex(a,b,c));
+                   newInsertMesh(Vertex(a,b,c));
 
                }
         }
@@ -175,7 +172,9 @@ bool Mesh::newSplitTriangle(Vertex pt, int index_face)
     int voisin_2 = _facesArray[index_face].voisin2();
     int voisin_3 = _facesArray[index_face].voisin3();
 
-    _facesArray[voisin_1].changeVoisin(index_face,_facesArray.size());
+    if(voisin_1 != -1)
+        _facesArray[voisin_1].changeVoisin(index_face,_facesArray.size());
+    if(voisin_2 != -1)
     _facesArray[voisin_2].changeVoisin(index_face,_facesArray.size()+1);
 
 
@@ -184,5 +183,87 @@ bool Mesh::newSplitTriangle(Vertex pt, int index_face)
     _facesArray.push_back(three);
 
     return true;
+
+}
+void Mesh::insertPointOutSide(Vertex vt)
+{
+    QVector<BorderEdge> queue;
+
+    _vertexArray.push_back(vt);
+    QStack<BorderEdge> save;
+    while(!_borderEgde.isEmpty())
+    {
+        BorderEdge head (_borderEgde.pop());
+        cout<<"Debug ne: "<<head.one()<<" VA " <<head.two()<<endl;
+        save.push(head);
+
+        if(signxz(vt,_vertexArray[head.one()],_vertexArray[head.two()]) < 0)
+           {
+                save.pop();
+                BorderEdge one(_vertexArray.size()-1,head.two(),_facesArray.size());
+                BorderEdge two(head.one(),_vertexArray.size()-1,_facesArray.size());
+
+                Triangle new_one(_vertexArray.size()-1,head.two(),head.one(),head.face(),-1,-1);
+                _facesArray.push_back(new_one);
+
+                if(queue.isEmpty())
+                {
+                    queue.push_back(one);
+                    queue.push_back(two);
+                }
+                else{
+                  bool dup = false;
+                  for(int j =0; j<queue.size(); j++)
+                  {
+                        cout<<"Canh 5:" << one.one() <<" Canh 2: " << one.two();
+                      if(queue[j].duplicate(one))
+                      {
+
+                        _facesArray[queue[j].face()].changeVoisin(one);
+                        _facesArray[one.face()].changeVoisin(queue[j]);
+                        queue.erase(queue.begin()+j);
+                        dup = true;
+                        break;
+                      }
+                  }
+
+                  if(!dup)
+                      queue.push_back(one);
+                  dup =false;
+                  for(int j =0; j<queue.size(); j++)
+                  {
+                      if(queue[j].duplicate(two))
+                      {
+                          _facesArray[queue[j].face()].changeVoisin(two);
+                          _facesArray[two.face()].changeVoisin(queue[j]);
+                          queue.erase(queue.begin()+j);
+                          dup = true;
+                          break;
+                      }
+                  }
+                  if(!dup)
+                      queue.push_back(two);
+                }
+
+           }
+    }
+
+    for(int i=0; i<save.size(); i++)
+    {
+
+        cout<<"save["<<i<<"]: "<<save[i].one()<<" VA " <<save[i].two()<<endl;
+        cout<<endl;
+    }
+
+    _borderEgde = save;
+    _borderEgde.push(queue[0]);
+    _borderEgde.push(queue[1]);
+
+    cout<<"Queue co van de 0: "<<queue[0].one() <<" and " <<queue[0].two()<<endl;
+    cout<<"Queue co van de: "<<queue[1].one() <<" and " <<queue[1].two();
+
+
+
+
 
 }
